@@ -1,0 +1,45 @@
+<h1>Health O Meter</h1>
+<h2>Status: <%= healthy? ?  "PASS" : "FAIL" %></h2>
+
+<table border="1" width="90%">
+  <tr>
+    <th></th>
+    <th>Name</th>
+    <th>Result</th>
+    <th>Time (s)</th>
+    <th>Description</th>
+  </tr>
+  <% monitored_features.each do |name, options| %>
+    <% result =  @results[ name ] %>
+  <tr>
+    <td style="background-color: <%=  case result.try( '[]', :status )
+      when nil, :skipped   then 'yellow'
+      when :success        then 'green'
+      when :failure        then 'red'
+      when :timeout        then 'blue'
+    end
+    -%>">
+      <%= result ? result[:status].to_s.upcase : "SKIPPED" %>
+    </td>
+    <td><%= h name.to_s.titleize %></td>
+    <td><%= h result ? result[ :message ] : "SKIPPED" %></td>
+    <td><%= h "#{result[ :time ]} s" if result %></td>
+    <td><%= h result.try( '[]', :description ) || options[ :description ] %></td>
+  </tr>
+  <% end %>
+</table>
+<br>
+<table>
+  <tr>
+    <td><b>Total Time: </b></td>
+    <td><%= h "#{@results.sum{|n, r| r[ :time ] || 0 }} seconds" %></td>
+  </tr>
+  <tr>
+    <td><b>PID: </b></td>
+    <td><%= $$ %></td>  
+  </tr>
+  <tr>
+    <td><b>Host: </b></td>
+    <td><%= request.host %></td>  
+  </tr>
+</table>

@@ -1,0 +1,119 @@
+= Health Monitor 
+Monitor individual aspects of your rails application's health
+
+Most rails applications have many additional moving parts of which the health cannot be assessed with 
+simply pinging the (hopefully page cached) homepage 
+
+For example, 
+* Is Email is sent successfully?
+* Is the SMS gateway alive and you bought sufficient credits?
+* All database connections are alive? Backgroundrb down again?
+* The cloud computing setup jacked the imagemagick? Again?
+* You are running out of disk space and there are no more file descriptors for your
+* The git SHA and version is what ?
+
+Health Monitor adds a single controller action to generate an html, js, or xml report with details of *all* 
+your custom defined health checks. An error response code (500 server error) indicates failure
+when any monitored feature fails or exceeds the custom timeout definition. Health monitor is easier to setup than
+custom server side cron tasks and adds the advantage of exercising more code since everything from your load balancer 
+to nginx to mongrels must be happily shoving rubies around to get that 200 oh boy success message.
+So ping away, grab a beer and know that hey, you might be too drunk but at least you will know your application 
+is sick before your clients do.
+
+=== Installation
+Install the plugin or gem
+  script/plugin install git://github.com/blythedunham/health_monitor
+
+  sudo gem install blythedunham-health_monitor --sources=http://gemcutter
+
+Run the generator to create HealthMonitorController
+  script/generate health_monitor
+
+=== Examples
+
+  class HealthMonitorController < ApplicationController
+    acts_as_health_monitor
+
+    # montior the database connection
+    monitor_health :database, :description => 'Check database connection'
+
+    # Monitor email sending. Fail if it exceeds 4 minutes
+    monitor_health :email,
+      :timeout => 240000 # Fail this test if it exceeds 4 minutes
+      :method => lambda{ |controller|  ActionMailer::Base.deliver_my_mail('blah') }
+
+    # Display the results of system df call with the results
+    monitor_health :check_disk, :description => 'Check Disk status' do |controller|
+      results = `df`
+      status = $? == 0 ? :success : :failure
+      { :status => status, :message => "DF: #{results}" }
+    end
+
+    protected
+    def database; ActiveRecord::Base.connection; end
+
+  end
+
+=== +monitor_health+ Options
+<tt>:description</tt> - description of the task
+<tt>:message</tt> - Defaults to SUCCESS or FAILED!
+  Additional information that is either a string or a hash with keys <tt>:success</tt> and <tt>:failure</tt>
+  Message allows more custom result information, such as the number of servers queried or IP address
+  or git version.
+
+<tt>:timeout</tt> - Fails the health check if the total time exceeds <tt>:timeout</tt> milliseconds
+<tt>:method</tt> - The name of the method or a Proc to invoke. A block can be given as well.
+Defaults to the method with the feature name
+
+=== Monitored Methods
+The proc or method defined should return its status as one of the following:
+* true or false indicating success or failure
+  monitor_health :mymonitor, :method => { |controller| ...do something ... ; true }
+
+  monitor_health :myothermonitor
+  def myothermonitor; false; end
+
+* a status symbol: of <tt>:success</tt>, <tt>:failure</tt>, <tt>:timeout</tt>, <tt>:skipped</tt>
+  monitor_health :mymonitor, :method => { |controller| ...do something ... ; :failure }
+
+* a hash of attributes including:
+** <tt>:status</tt> must be a value listed above: defaults to failure
+** <tt>:message</tt> Custom message with result data
+** <tt>:description</tt> The task description
+
+  monitor_health :mymonitor do |controller|
+    ...do something ... ;
+    { :status => :success, :message => 'My custom results for server abc', :description => 'task description' }
+  end
+
+=== Skip tests or run a single test
+To skip a test, add the skip parameter to your url with a list of comma delimited tests to skip
+  http://yayhost/health_monitor.html?skip=testblah
+  http://yayhost/health_monitor.js?skip=test1,test2
+
+To specify tests to run, use the :only parameter
+  http://yayhost/health_monitor?only=test2,test4,test5
+   
+=== Routes
+By default, the route resources are added (assume controller is named +HealthMonitorController+)
+The action defined is named +monitor_health+
+
+Base resource if show is not already defined by +health_monitor_url+
+  host/health_monitor.js?skip=mysql
+
+Member accessor +monitor_health_health_monitor+
+  host/health_monitor/monitor_health.js?only=thatone,thisone
+
+To disable and write your own routes, use +route+ option with +acts_as_health_monitor+
+  acts_as_health_monitor :route => false
+
+=== Considerations
+If you are reporting sensitive information, consider limiting this controller to specific IP addresses or 
+adding authorization logic to your controller with before_filters.
+
+=== Inspirations and Fun
+Health monitor was inspired by work at http://spongecell.com. 
+Health monitor is brought to you by the rule of threes and the letter B.
+The official mascot of health monitor is GIRAFFE! and the official drink is sparklemotion (1 part sparks, 1 part champagne)
+
+Copyright (c) 2009 Blythe Dunham. See LICENSE for details.
