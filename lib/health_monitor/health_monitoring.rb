@@ -209,7 +209,7 @@ END_SRC
     logger.error(
       "Health Monitor Error for feature '#{feature_name}': " +
       " ##{e.inspect}\n #{e.backtrace.join("\n")}"
-    ) if defined?( logger )
+    ) if defined?( logger ) && logger
 
     return { :status => :failure, :exception => e }
   end

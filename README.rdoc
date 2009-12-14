@@ -1,6 +1,10 @@
 = Health Monitor 
 Monitor individual aspects of your rails application's health
 
+
+
+
+
 Most rails applications have many additional moving parts of which the health cannot be assessed with 
 simply pinging the (hopefully page cached) homepage 
 
@@ -20,22 +24,44 @@ to nginx to mongrels must be happily shoving rubies around to get that 200 oh bo
 So ping away, grab a beer and know that hey, you might be too drunk but at least you will know your application 
 is sick before your clients do.
 
-=== Installation
+== Installation
 Install the plugin or gem
   script/plugin install git://github.com/blythedunham/health_monitor
 
-  sudo gem install blythedunham-health_monitor --sources=http://gemcutter
+  sudo gem install health_monitor --source=http://gemcutter.org
 
 Run the generator to create HealthMonitorController
   script/generate health_monitor
+
+
+== Quick Reference
+  # Built in checks to monitor db and schema
+  monitor_health  :schema_check, :database_check
+
+  # Monitor a process
+  monitor_process :monit
+
+  montior_health :mycheck, :description => 'Check blahs' do |controller|
+    ... do something ....
+  end
+
+
 
 === Examples
 
   class HealthMonitorController < ApplicationController
     acts_as_health_monitor
 
-    # montior the database connection
-    monitor_health :database, :description => 'Check database connection'
+    # Built in checks query the database for the schema and make sure
+    # that the database connection
+    monitor_health :schema_check, :database_check, :ey_agent_check
+
+    #monitor specified process
+    monitor_process :monit
+
+    # check database connection by ensuring there is at least one user
+    # calls protected method +user_check+
+    monitor_health :user_check, :description => 'Check database connection'
 
     # Monitor email sending. Fail if it exceeds 4 minutes
     monitor_health :email,
@@ -50,11 +76,26 @@ Run the generator to create HealthMonitorController
     end
 
     protected
-    def database; ActiveRecord::Base.connection; end
+    def user_check; User.first; end
 
   end
 
-=== +monitor_health+ Options
+=== +monitor_process+ Monitor a server process
++process_name+ - name of the process to monitor
+
+==== Options
++sudo+ - (default false) set to true to run pgrep as sudo
++pattern+ - specify a pattern to match (pgrep -f) instead of the process_name
++arguments+ - additional arguments to pgrep "-o root,blah -a"
+
+    monitor_process :monit, :someproc, :sudo => true
+    monitor_process :mongod, :pattern => 'mongodb.*slave'
+
+
+=== +monitor_health+
+Monitor the health of the application
+
+==== Options
 <tt>:description</tt> - description of the task
 <tt>:message</tt> - Defaults to SUCCESS or FAILED!
   Additional information that is either a string or a hash with keys <tt>:success</tt> and <tt>:failure</tt>
@@ -64,6 +105,16 @@ Run the generator to create HealthMonitorController
 <tt>:timeout</tt> - Fails the health check if the total time exceeds <tt>:timeout</tt> milliseconds
 <tt>:method</tt> - The name of the method or a Proc to invoke. A block can be given as well.
 Defaults to the method with the feature name
+
+
+=== Built in checks
++schema_check+ and +database_check+ are protected methods.
+
+Check the database connection and report the schema number
+    monitor_health :schema_check
+
+Check for an active database connection
+    monitor_health :database_check
 
 === Monitored Methods
 The proc or method defined should return its status as one of the following:
