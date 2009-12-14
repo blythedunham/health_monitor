@@ -90,10 +90,12 @@
 # To disable and write your own routes, use +route+ option with +acts_as_health_monitor+
 #   acts_as_health_monitor :route => false
 #
+module HealthMonitor
 module HealthMonitoring
   def self.included( base )
     base.class_eval do
       extend HealthMonitoring::ClassMethods
+      include HealthMonitor::BuiltInChecks
       cattr_accessor :monitored_features
       self.monitored_features ||= ActiveSupport::OrderedHash.new
 
@@ -119,7 +121,7 @@ module HealthMonitoring
   #
   module ActsAsHealthMonitor
     def acts_as_health_monitor( options = {} )
-      include HealthMonitoring unless method_defined?( :health_monitor )
+      include HealthMonitor::HealthMonitoring unless method_defined?( :health_monitor )
       
       setup_health_monitor_routes( options.delete( :route ) )
     end
@@ -134,17 +136,8 @@ module HealthMonitoring
         :show
       end
 
-
       ActionController::Routing::Routes.draw do |map|
         map.resource controller_name, :controller => controller_name, :only => base_methods, :member => { :monitor_health => :get }
-        #map.named_route controller_name, controller_name + '.:format', :conditions => {:method => :get}, :controller => controller_name, :action => 'monitor_health'
-        #map.named_route "monitor_health_#{controller_name}", "#{controller_name}/monitor_health.:format", :conditions => {:method => :get}, :controller => controller_name, :action => 'monitor_health'
-        
-        #map.resource controller_name, :controller => controller_name, :only => :none, :member => { :monitor_health => :get } do |r|
-        #  r.named_route '', '.:format', :conditions => {:method => :get}, :controller => controller_name, :action => 'monitor_health'
-        #end
-        #map.named_route route_name, route_path, :controller => controller_name, :action => 'health', :method => :get
-        #map.connect "#{controller_name}", :controller => controller_name, :action => 'health'
       end
     end
   end
@@ -155,6 +148,31 @@ module HealthMonitoring
       options.symbolize_keys!
       options[:method] = block if block_given?
       features.each {|name|  self.monitored_features[ name.to_sym ] = options }
+    end
+
+    # Monitor a server process
+    # +process_name+ - name of the process to monitor
+    # === Options
+    # +sudo+ - (default false) set to true to run pgrep as sudo
+    # +pattern+ - specify a pattern to match (pgrep -f) instead of the process_name
+    # +arguments+ - additional arguments to pgrep "-o root,blah -a"
+    # === Examples
+    #   monitor_process :monit, :someproc, :sudo => true
+    #   monitor_process :mongod, :pattern => 'mongodb.*slave'
+    def monitor_process( *processes )
+      options = processes.extract_options!
+      options.symbolize_keys!
+
+      processes.each do |process_name|
+        monitor_name = "check_process_#{process_name.to_s.underscore}".to_sym
+        class_eval <<-END_SRC, __FILE__, __LINE__
+def #{monitor_name}
+  process_health( #{process_name.inspect}, monitored_features[#{monitor_name.inspect}] )
+end
+END_SRC
+
+        monitor_health monitor_name, options
+      end
     end
   end
 
@@ -174,7 +192,6 @@ module HealthMonitoring
   end
 
   protected
-
   def monitor_health_of( feature_name )
     feature_status = { :name => feature_name }
     result = nil
@@ -189,6 +206,11 @@ module HealthMonitoring
     else send( method )
     end
   rescue => e
+    logger.error(
+      "Health Monitor Error for feature '#{feature_name}': " +
+      " ##{e.inspect}\n #{e.backtrace.join("\n")}"
+    ) if defined?( logger )
+
     return { :status => :failure, :exception => e }
   end
 
@@ -205,7 +227,7 @@ module HealthMonitoring
   def on_unhealthy() end
 
   def health_check_template
-    File.join( File.dirname(__FILE__), "/../generators/health_monitor/templates/_health_monitor.html.erb" )
+    File.join( File.dirname(__FILE__), "/../../generators/health_monitor/templates/_health_monitor.html.erb" )
   end
 
   def health_response_code
@@ -303,4 +325,5 @@ module HealthMonitoring
     fail_health_timeout!( feature_status )
     set_default_health_status!( feature_status )
   end
+end
 end
