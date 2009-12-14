@@ -2,7 +2,7 @@ class <%= class_name %>Controller < ApplicationController
   acts_as_health_monitor
 
   # Built in checks
-  monitor_health :schema_check, :database_check, #:ey_agent_check
+  monitor_health :schema_check, :database_check#, :ey_agent_check
 
   # Refer to the README at http://github.com/blythedunham/health_monitor
   # for more examples
@@ -31,4 +31,5 @@ class <%= class_name %>Controller < ApplicationController
   end
 
   <% end -%>
+
 end

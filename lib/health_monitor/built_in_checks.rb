@@ -19,8 +19,7 @@ module HealthMonitor
     def database_check
       {
         :status => ActiveRecord::Base.connection && ActiveRecord::Base.connection.active?,
-        :description => 'Active Database connection',
-        :message => "DATABASE CHECK #{ActiveRecord::Base.connection.active?}"
+        :description => 'Active Database connection'
       }
     end
 
