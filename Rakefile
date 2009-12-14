@@ -16,7 +16,9 @@ begin
     #gem.add_development_dependency('timecop', '0.3.1')
     gem.add_development_dependency('mocha', '>=0.9.8')
     gem.add_development_dependency "thoughtbot-shoulda", ">= 0"
-    
+
+    gem.extra_rdoc_files = ["README.rdoc", "LICENSE"]
+
     # gem is a Gem::Specification... see http://www.rubygems.org/read/chapter/20 for additional settings
   end
   Jeweler::GemcutterTasks.new

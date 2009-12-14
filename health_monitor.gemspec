@@ -5,18 +5,19 @@
 
 Gem::Specification.new do |s|
   s.name = %q{health_monitor}
-  s.version = "0.0.1"
+  s.version = "0.1.1"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Blythe Dunham"]
-  s.date = %q{2009-12-05}
+  s.date = %q{2009-12-13}
   s.email = %q{blythe@snowgiraffe.com}
   s.extra_rdoc_files = [
     "LICENSE",
      "README.rdoc"
   ]
   s.files = [
-    "LICENSE",
+    ".gitignore",
+     "LICENSE",
      "README.rdoc",
      "Rakefile",
      "VERSION",
@@ -25,12 +26,10 @@ Gem::Specification.new do |s|
      "generators/health_monitor/templates/controller.rb",
      "health_monitor.gemspec",
      "lib/health_monitor.rb",
-     "lib/health_monitoring.rb",
-     "pkg/health_monitor-0.0.0.gem",
-     "templates/_health_monitor.html.erb",
+     "lib/health_monitor/built_in_checks.rb",
+     "lib/health_monitor/health_monitoring.rb",
      "test/helper.rb",
-     "test/test_health_monitor.rb",
-     "tmp/test.log"
+     "test/test_health_monitor.rb"
   ]
   s.homepage = %q{http://github.com/blythedunham/health_monitor}
   s.rdoc_options = ["--charset=UTF-8"]
