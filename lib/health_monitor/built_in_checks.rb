@@ -2,11 +2,33 @@ module HealthMonitor
   module BuiltInChecks
     protected
 
+    # Check the schema and sort by casted version number
+    def sorted_schema_check; schema_check(:cast => true); end
+
     # Check the schema version
-    def schema_check
-      version    = ActiveRecord::Base.connection.select_value(
-        'select version from schema_migrations order by version limit 1'
-      )
+    # === Options
+    #  <tt> :sql </tt> - the sql to use for the schema check
+    #  <tt> :cast </tt> - cast the version to integer. Use for mysql non timestamped migrations if collation is not set.
+    #  <tt> :order </tt> - the order by sql for selecting the current version
+    #  <tt> :table </tt> - the table name. Defaults to schema_migrations.
+    def schema_check( options = {} )
+
+      sql = options[:sql]
+      sql||= begin
+        order_sql = if options[:order]
+          options[:order]
+        elsif options[:cast] || 
+          (!ActiveRecord::Base.timestamped_migrations && ActiveRecord::Base.connection.is_a?(ActiveRecord::ConnectionAdapters::MysqlAdapter))
+          "CAST(version as unsigned) DESC"
+        else
+          "version DESC"
+        end
+        table = options[:table] || (Rails::VERSION::STRING >= '2.1.0' ? 'schema_migrations' : 'schema_info')
+
+        options[:sql] || "select version from #{table} order by #{order_sql} LIMIT 1"
+      end
+      
+      version    = ActiveRecord::Base.connection.select_value( sql )
 
       {
         :status       => :success,
