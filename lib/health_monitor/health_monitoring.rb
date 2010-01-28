@@ -136,6 +136,9 @@ module HealthMonitoring
         :show
       end
 
+      #alias index to monitor health if for default routes
+      alias_method :index, :monitor_health unless method_defined?( :index )
+
       ActionController::Routing::Routes.draw do |map|
         map.resource controller_name, :controller => controller_name, :only => base_methods, :member => { :monitor_health => :get }
       end
