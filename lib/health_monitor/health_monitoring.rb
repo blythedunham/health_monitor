@@ -9,7 +9,7 @@
 # * Is the SMS gateway alive and you bought sufficient credits?
 # * All database connections are alive? Backgroundrb down again?
 # * The cloud computing setup jacked the imagemagick? Again?
-# * You are running out of disk space and there are no more file descriptors for your
+# * You are running out of disk space and there are no more file descriptors?
 # * The git SHA and version is what ?
 #
 # Health Monitor adds a single controller action to generate an html, js, or xml report with details of *all* 
@@ -25,7 +25,7 @@
 # class HealthMonitorController < ApplicationController
 #   acts_as_health_monitor
 #
-#   # montior the database connection
+#   # monitor the database connection
 #   monitor_health :database, :description => 'Check database connection'
 #
 #   # Monitor email sending. Fail if it exceeds 4 minutes
@@ -33,7 +33,7 @@
 #     :timeout => 240000 # Fail this test if it exceeds 4 minutes
 #     :method => lambda{ |controller|  ActionMailer::Base.deliver_my_mail('blah') }
 #
-#   # Display the results of system df call with the results
+#   # Display the status of system df call with the results
 #   monitor_health :check_disk, :description => 'Check Disk status' do |controller|
 #     results = `df`
 #     status = $? == 0 ? :success : :failure
@@ -89,6 +89,7 @@
 #
 # To disable and write your own routes, use +route+ option with +acts_as_health_monitor+
 #   acts_as_health_monitor :route => false
+#   map.resource :health_monitor, :controller => "health_monitor", :only => :show, :member => { :monitor_health => :get } 
 #
 module HealthMonitor
 module HealthMonitoring

@@ -1,10 +1,6 @@
 = Health Monitor 
 Monitor individual aspects of your rails application's health
 
-
-
-
-
 Most rails applications have many additional moving parts of which the health cannot be assessed with 
 simply pinging the (hopefully page cached) homepage 
 
@@ -13,7 +9,7 @@ For example,
 * Is the SMS gateway alive and you bought sufficient credits?
 * All database connections are alive? Backgroundrb down again?
 * The cloud computing setup jacked the imagemagick? Again?
-* You are running out of disk space and there are no more file descriptors for your
+* You are running out of disk space and there are no more file descriptors?
 * The git SHA and version is what ?
 
 Health Monitor adds a single controller action to generate an html, js, or xml report with details of *all* 
@@ -30,9 +26,11 @@ Install the plugin or gem
 
   sudo gem install health_monitor --source=http://gemcutter.org
 
+If you use the gem, be sure to add it to your environment.rb
+  config.gem 'health_monitor'
+  
 Run the generator to create HealthMonitorController
   script/generate health_monitor
-
 
 == Quick Reference
   # Built in checks to monitor db and schema
@@ -40,12 +38,11 @@ Run the generator to create HealthMonitorController
 
   # Monitor a process
   monitor_process :monit
-
-  montior_health :mycheck, :description => 'Check blahs' do |controller|
+  
+  # Monitor anything
+  monitor_health :mycheck, :description => 'Check blahs' do |controller|
     ... do something ....
   end
-
-
 
 === Examples
 
@@ -53,13 +50,14 @@ Run the generator to create HealthMonitorController
     acts_as_health_monitor
 
     # Built in checks query the database for the schema and make sure
-    # that the database connection
+    # that the database connection is live. If you're on Engine Yard
+    # you can also check that nginx/apache and the database are live
     monitor_health :schema_check, :database_check, :ey_agent_check
 
-    #monitor specified process
+    # Monitor specified process
     monitor_process :monit
 
-    # check database connection by ensuring there is at least one user
+    # Check database connection by ensuring there is at least one user
     # calls protected method +user_check+
     monitor_health :user_check, :description => 'Check database connection'
 
@@ -68,7 +66,7 @@ Run the generator to create HealthMonitorController
       :timeout => 240000 # Fail this test if it exceeds 4 minutes
       :method => lambda{ |controller|  ActionMailer::Base.deliver_my_mail('blah') }
 
-    # Display the results of system df call with the results
+    # Display the status of system df call with the results
     monitor_health :check_disk, :description => 'Check Disk status' do |controller|
       results = `df`
       status = $? == 0 ? :success : :failure
@@ -108,13 +106,16 @@ Defaults to the method with the feature name
 
 
 === Built in checks
-+schema_check+ and +database_check+ are protected methods.
++schema_check+, +database_check+, and +ey_agent_check+ are protected methods.
 
 Check the database connection and report the schema number
     monitor_health :schema_check
 
 Check for an active database connection
-    monitor_health :database_check
+    monitor_health :database_check       
+    
+Check the Engine Yard agent, web server, and database
+    monitor_health :ey_agent_check
 
 === Monitored Methods
 The proc or method defined should return its status as one of the following:
@@ -157,7 +158,8 @@ Member accessor +monitor_health_health_monitor+
 
 To disable and write your own routes, use +route+ option with +acts_as_health_monitor+
   acts_as_health_monitor :route => false
-
+  map.resource :health_monitor, :controller => "health_monitor", :only => :show, :member => { :monitor_health => :get } 
+   
 === Considerations
 If you are reporting sensitive information, consider limiting this controller to specific IP addresses or 
 adding authorization logic to your controller with before_filters.
