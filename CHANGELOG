@@ -1,0 +1,20 @@
+2010-2-3
+* Doc cleanup (thanks ffmike)
+
+Version 0.1.4
+2010-1-28
+* Fix Schema Version to return the maximum schema number (collation for non-timestamped migrations)
+* Options for obtaining schema version 
+* Auto Routing fix for systems with default /:controller/:action/:id routes
+
+0.1.2
+2009-12-13
+* resolve bad template generation from misplaced comma
+
+0.1.1
+2009-12-13
+* Create gem
+
+0.0.1
+2009-12-06
+* Initial commit
